@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+from argparse import ArgumentParser, FileType
+from sys import argv, stdin, stdout, stderr
+from re import compile
+
+from lxml import etree
+
+def get_options(args):
+    parser = ArgumentParser('vcf xml contact converter')
+    parser.add_argument('vcf', nargs='?', type=FileType('r'),
+        default=stdin)
+    parser.add_argument('--xml', type=FileType('w'), default=stdout)
+    options = parser.parse_args(args)
+    return vars(options)
+
+def main(vcf, xml):
+    print >> xml, '<mozcontacts>'
+    for vcard in iter_vcard(vcf):
+        contact = xml_contact(**vcard)
+        print >> xml, etree.tostring(contact)
+    print >> xml, '</mozcontacts>'
+    return 0
+
+patterns = dict(
+    name  = compile('FN:(.+)'),
+    phone = compile('TEL;VALUE=uri:tel:(.+)'),
+)
+
+def iter_vcard(vcf):
+    for line in vcf:
+        if line.startswith('BEGIN:VCARD'):
+            vcard = {}
+        elif line.startswith('END:VCARD'):
+            yield vcard
+        else:
+            for name, pattern in patterns.iteritems():
+                match = pattern.match(line)
+                vcard[name] = match.group(1) if match else 'FOO'
+    return
+
+def xml_contact(name, phone):
+    contact = etree.Element('contact')
+    etree.SubElement(contact, 'name').text = name
+    names = name.split()
+    
+    tel = etree.SubElement(contact, 'tel')
+    etree.SubElement(tel, 'type').text = 'mobile'
+    etree.SubElement(tel, 'value').text = phone
+    etree.SubElement(tel, 'carrier').clear()
+
+    for subtag in 'id', 'published', 'updated':
+        etree.SubElement(contact, subtag).clear()
+    return contact
+
+if __name__ == '__main__':
+    options = get_options(argv[1:])
+    status = main(**options)
+    exit(status)
