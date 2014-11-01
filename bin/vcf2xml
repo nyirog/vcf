@@ -14,6 +14,7 @@ def get_options(args):
     return vars(options)
 
 def main(vcf, xml):
+    print >> xml, '<?xml version="1.0" encoding="UTF-8"?>'
     print >> xml, '<mozcontacts>'
     for vcard in iter_vcard(vcf):
         contact = xml_contact(**vcard)
@@ -29,19 +30,28 @@ patterns = dict(
 def iter_vcard(vcf):
     for line in vcf:
         if line.startswith('BEGIN:VCARD'):
-            vcard = {}
+            vcard = dict.fromkeys(patterns, '')
         elif line.startswith('END:VCARD'):
             yield vcard
         else:
             for name, pattern in patterns.iteritems():
                 match = pattern.match(line)
-                vcard[name] = match.group(1) if match else 'FOO'
+                if match:
+                    vcard[name] = unicode(match.group(1), errors='ignore')
+                    break
     return
 
 def xml_contact(name, phone):
     contact = etree.Element('contact')
+
     etree.SubElement(contact, 'name').text = name
     names = name.split()
+    etree.SubElement(contact, 'givenName').text = names[0]
+    if len(names) > 1:
+        etree.SubElement(contact, 'familyName').text = names[-1]
+    if len(names) > 2:
+        additional_name = ' '.join(names[1:-1])
+        etree.SubElement(contact, 'additionalName').text = additional_name
     
     tel = etree.SubElement(contact, 'tel')
     etree.SubElement(tel, 'type').text = 'mobile'
