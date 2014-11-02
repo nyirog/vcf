@@ -16,7 +16,7 @@ def get_options(args):
 def main(v4cf, v3cf):
     for v4card in iter_vcard(v4cf):
         v3card = downgrade(v4card)
-        v3card.serialize(v3cf)
+        print >> v3cf, v3card
     return 0
 
 if __name__ == '__main__':

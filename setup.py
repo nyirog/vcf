@@ -11,7 +11,6 @@ setup(name='vcf',
       py_modules=['vcard'],
       package_dir = {'': 'lib'},
       scripts=['bin/vdown'],
-      requires=['lxml', 'vobject'],
       license=open(dirname(__file__)+'/LICENSE').read(),
       url='https://github.com/nyirog/vcf',
  )
