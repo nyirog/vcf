@@ -5,10 +5,11 @@ from sys import argv, stdin, stdout, stderr
 from vcard import iter_vcard, downgrade
 
 def get_options(args):
-    parser = ArgumentParser('downdate vcard')
+    parser = ArgumentParser('downgrade vcard file from version 4 to 3')
     parser.add_argument('v4cf', nargs='?', type=FileType('r'),
-        default=stdin)
-    parser.add_argument('--v3cf', type=FileType('w'), default=stdout)
+        default=stdin, help='name of the version 4 vcard file')
+    parser.add_argument('--v3cf', type=FileType('w'), default=stdout,
+        help='name of the version 4 vcard file')
     options = parser.parse_args(args)
     return vars(options)
 
