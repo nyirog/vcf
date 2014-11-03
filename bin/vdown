@@ -2,7 +2,7 @@
 from argparse import ArgumentParser, FileType
 from sys import argv, stdin, stdout, stderr
 
-from vcard import iter_vcard, downgrade
+from vcard import iter_vcard, build_v4card, downgrade
 
 def get_options(args):
     parser = ArgumentParser('downgrade vcard file from version 4 to 3')
@@ -14,7 +14,8 @@ def get_options(args):
     return vars(options)
 
 def main(v4cf, v3cf):
-    for v4card in iter_vcard(v4cf):
+    for vcard in iter_vcard(v4cf):
+        v4card = build_v4card(vcard)
         v3card = downgrade(v4card)
         print >> v3cf, v3card
     return 0

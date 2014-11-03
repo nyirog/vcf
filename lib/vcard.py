@@ -1,4 +1,5 @@
 from re import compile, VERBOSE
+from collections import OrderedDict
 
 _patterns = {
     'n': compile(r"""
@@ -15,43 +16,80 @@ _patterns = {
     'tel': compile(
         r"TEL;(TYPE=(?P<type>[^;]+);)?VALUE=uri:tel:(?P<phone>.+)"
      ),
+     'rev': compile(r"""
+        REV:
+            (?P<year>\d{4})
+            (?P<month>\d{2})
+            (?P<day>\d{2})
+            T
+            (?P<hour>\d{2})
+            (?P<minute>\d{2})
+            (?P<second>\d{2})
+            (?P<timezone>\w+)
+        """, VERBOSE
+     ),
+     'version': compile('VERSION:(?P<version>[\d\.]+)'),
+     'email': compile('EMAIL:(?P<email>.+)')
 }
 
+def build_v4card(vcf):
+    v4card = OrderedDict()
+    for line in vcf:
+        for name, pattern in _patterns.iteritems():
+            match = pattern.match(line)
+            if match:
+                contents = v4card.setdefault(name, [])
+                contents.append(match.groupdict())
+                break
+    return v4card
+
 def iter_vcard(vcf):
+    vcard = []
     for line in vcf:
         if line.startswith('BEGIN:VCARD'):
-            vcard = {}
-        elif line.startswith('END:VCARD'):
-            yield vcard
+            vcard = [line]
         else:
-            for name, pattern in _patterns.iteritems():
-                match = pattern.match(line)
-                if match:
-                    vcard[name] = match.groupdict()
-                    break
+            vcard.append(line)
+        if line.startswith('END:VCARD'):
+            yield vcard
     return
+
 
 _tags = {
     'fn': 'FN:%(full_name)s',
     'n': 'N:%(family)s;%(given)s;%(additional)s;%(prefix)s;%(suffix)s',
     'org': 'ORG:%(organization)s',
     'tel': 'TEL;TYPE=%(type)s:%(phone)s',
-
+    'rev': 'REV:%(year)s-%(month)s-%(day)sT%(hour)s:%(minute)s:%(second)s%(timezone)s',
+    'version': 'VERSION:%(version)s',
+    'email': 'EMAIL:%(email)s'
 }
 
 def downgrade(v4card):
     v3card = [
-        'START:VCARD',
-        'VERSION:3.0',
-        'REV:2008-04-24T19:52:43Z',
+        'BEGIN:VCARD',
     ]
-    for tag_name, tag_data in v4card.iteritems():
-        tag = _tags[tag_name]
-        if tag_name in _converters:
-            tag_data = _converters[tag_name](tag_data)
-        v3card.append(tag % tag_data)
+    for name, contents in v4card.iteritems():
+        tag = _tags[name]
+        for content in contents:
+            if name in _converters:
+                converter = _converters[name]
+                content = converter(content)
+            v3card.append(tag % content)
     v3card.append('END:VCARD')
     return '\n'.join(v3card)
 
+def _version(data):
+    return {'version': '3.0'}
+
+def _tel(data):
+    _data = data.copy()
+    if _data.get('type') is None:
+        _data['type'] = 'WORK,VOICE'
+    return _data
+
 _converters = {
+    'version': _version,
+    'tel': _tel,
 }
+
