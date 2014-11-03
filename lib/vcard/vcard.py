@@ -1,3 +1,4 @@
+from sys import stderr
 from collections import OrderedDict
 
 from component import factory, version, InvalidTag
@@ -21,7 +22,7 @@ class vCard(OrderedDict):
             try:
                 self.add(line)
             except InvalidTag, error:
-                pass
+                print >> stderr, line
         return self
 
     def add(self, line):
