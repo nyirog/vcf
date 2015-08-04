@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
-from os.path import dirname
+from os.path import dirname, abspath
 
 setup(name='vcf',
       version='0.1.0',
@@ -11,7 +11,7 @@ setup(name='vcf',
       packages=['vcard'],
       package_dir = {'': 'lib'},
       scripts=['bin/vdown'],
-      license=open(dirname(__file__)+'/LICENSE').read(),
+      license=open(dirname(abspath(__file__))+'/LICENSE').read(),
       url='https://github.com/nyirog/vcf',
  )
 
